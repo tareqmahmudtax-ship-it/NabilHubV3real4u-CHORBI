@@ -1,0 +1,1408 @@
+-- NABIL HUB | OMNIPOTENCE 2026 EDITION
+-- Optimization for Mobile (Redmi 12) & PC
+-- Featuring Kinetic Loading, Draggable GUI, & Custom Tab System
+--// NABILHUB OMNIPOTENCE - ADVANCED GUARD (FIXED & OPTIMIZED)
+
+repeat task.wait() until game:IsLoaded()
+task.wait(0.5)
+
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+local ContentProvider = game:GetService("ContentProvider")
+
+local lp = Players.LocalPlayer
+
+--// CONFIG
+local BLOCKED_EXECUTORS = {
+    ["Fluxus"] = true,
+    ["Evon"] = true
+}
+
+--// SAFE KICK
+local function SecureKick(reason)
+    if lp then
+        lp:Kick("\n[NabilHub Security]\n" .. reason .. "\n")
+    end
+end
+
+--// SILENT FREEZE (anti-debug)
+local function SilentFail()
+    while true do 
+           task.wait()
+      end
+end
+
+--// FUNCTION CHECK
+local function getFunc(name)
+    return rawget(getgenv(), name)
+        or rawget(_G, name)
+        or rawget(shared, name)
+end
+
+local function checkFunction(name)
+    local f = getFunc(name)
+    if typeof(f) ~= "function" then return false end
+
+    -- basic execution test
+    local ok = pcall(function()
+        if name == "getgenv" then
+            f()
+        end
+    end)
+    return ok
+end
+
+--// REQUIRED FUNCTIONS
+local REQUIRED = {
+    "loadstring",
+    "getgenv",
+    "writefile",
+    "readfile",
+    "isfile",
+    "gethui"
+}
+
+for _, func in ipairs(REQUIRED) do
+    if not checkFunction(func) then
+        SecureKick("Missing/Tampered Function: " .. func)
+        return
+    end
+end
+
+--// HOOK DETECTION
+local function isHooked(f)
+    local s = tostring(f)
+    return s:lower():find("hook") or s:lower():find("detour")
+end
+
+if isHooked(loadstring) or isHooked(getgenv) then
+    SilentFail()
+    return
+end
+
+--// EXECUTOR DETECTION
+local executor =
+    (typeof(identifyexecutor) == "function" and identifyexecutor()) or
+    (typeof(getexecutorname) == "function" and getexecutorname()) or
+    "Unknown"
+
+if BLOCKED_EXECUTORS[executor] then
+    SecureKick("Blocked Executor: " .. executor)
+    return
+end
+
+--// FINAL CHECK PASS
+print("NabilHub Guard: PASSED | Executor → " .. executor)
+
+local PlaceId = game.PlaceId
+local GameName = "Unknown Game"
+pcall(function()
+    GameName = MarketplaceService:GetProductInfo(PlaceId).Name
+end)
+
+--------------------------------------------------
+-- OMNIPOTENCE NOTIFY SYSTEM
+--------------------------------------------------
+local OmniNotify = {}
+local Queue = {}
+local Active = {}
+
+local Icons = {
+    success = "rbxassetid://3926305904",
+    error = "rbxassetid://3926307971",
+    warning = "rbxassetid://3926305904",
+    info = "rbxassetid://3926307971"
+}
+
+local NotifyGui = Instance.new("ScreenGui")
+NotifyGui.Name = "OMNIPOTENCE_NOTIFY"
+NotifyGui.ResetOnSpawn = false
+NotifyGui.Parent = CoreGui
+
+local function CreateNotification(data, index)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 260, 0, 70)
+    frame.Position = UDim2.new(1, 20, 0.15, (index - 1) * 80)
+    frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+    frame.BorderSizePixel = 0
+    frame.Parent = NotifyGui
+    frame.ClipsDescendants = true
+
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Thickness = 1.5
+    stroke.Transparency = 0.3
+
+    local icon = Instance.new("ImageLabel", frame)
+    icon.Size = UDim2.new(0, 26, 0, 26)
+    icon.Position = UDim2.new(0, 10, 0.5, -13)
+    icon.BackgroundTransparency = 1
+    icon.Image = Icons[data.type or "info"]
+
+    local title = Instance.new("TextLabel", frame)
+    title.Size = UDim2.new(1, -50, 0.4, 0)
+    title.Position = UDim2.new(0, 44, 0, 5)
+    title.BackgroundTransparency = 1
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Text = data.title or "OMNIPOTENCE"
+
+    local msg = Instance.new("TextLabel", frame)
+    msg.Size = UDim2.new(1, -50, 0.6, 0)
+    msg.Position = UDim2.new(0, 44, 0.4, 0)
+    msg.BackgroundTransparency = 1
+    msg.TextXAlignment = Enum.TextXAlignment.Left
+    msg.Font = Enum.Font.Gotham
+    msg.TextSize = 12
+    msg.TextColor3 = Color3.fromRGB(200, 200, 200)
+    msg.Text = data.text or ""
+
+    local t = data.type or "info"
+    if t == "success" then
+        stroke.Color = Color3.fromRGB(0, 255, 127)
+        icon.ImageColor3 = Color3.fromRGB(0, 255, 127)
+    elseif t == "error" then
+        stroke.Color = Color3.fromRGB(255, 60, 60)
+        icon.ImageColor3 = Color3.fromRGB(255, 60, 60)
+    elseif t == "warning" then
+        stroke.Color = Color3.fromRGB(255, 200, 0)
+        icon.ImageColor3 = Color3.fromRGB(255, 200, 0)
+    else
+        stroke.Color = Color3.fromRGB(0, 150, 255)
+        icon.ImageColor3 = Color3.fromRGB(0, 150, 255)
+    end
+
+    local ProgressBG = Instance.new("Frame", frame)
+    ProgressBG.Size = UDim2.new(1, -20, 0, 3)
+    ProgressBG.Position = UDim2.new(0, 10, 1, -6)
+    ProgressBG.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    ProgressBG.BorderSizePixel = 0
+    Instance.new("UICorner", ProgressBG).CornerRadius = UDim.new(1, 0)
+
+    local Progress = Instance.new("Frame", ProgressBG)
+    Progress.Size = UDim2.new(1, 0, 1, 0)
+    Progress.BackgroundColor3 = stroke.Color
+    Progress.BorderSizePixel = 0
+    Instance.new("UICorner", Progress).CornerRadius = UDim.new(1, 0)
+
+    TweenService:Create(Progress, TweenInfo.new(data.duration, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 1, 0)}):Play()
+
+    local dragging = false
+    local startX = 0
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            startX = input.Position.X
+        end
+    end)
+
+    frame.InputEnded:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1) then
+            dragging = false
+            if input.Position.X - startX > 60 then
+                OmniNotify.Remove(frame)
+            end
+        end
+    end)
+
+    return frame
+end
+
+function OmniNotify.Show(title, text, duration, ntype)
+    table.insert(Queue, {title = title, text = text, duration = duration or 3, type = ntype or "info"})
+    if #Active == 0 then OmniNotify.Process() end
+end
+
+function OmniNotify.Process()
+    while #Queue > 0 do
+        local data = table.remove(Queue, 1)
+        local index = #Active + 1
+        local ui = CreateNotification(data, index)
+        table.insert(Active, ui)
+
+        TweenService:Create(ui, TweenInfo.new(0.35, Enum.EasingStyle.Quint), {Position = UDim2.new(1, -280, 0.15, (index - 1) * 80)}):Play()
+
+        task.spawn(function()
+            task.wait(data.duration)
+            if ui and ui.Parent then OmniNotify.Remove(ui) end
+        end)
+    end
+end
+
+function OmniNotify.Remove(ui)
+    for i, v in ipairs(Active) do
+        if v == ui then
+            table.remove(Active, i)
+            break
+        end
+    end
+    TweenService:Create(ui, TweenInfo.new(0.25, Enum.EasingStyle.Quint), {Position = UDim2.new(1, 300, ui.Position.Y.Scale, ui.Position.Y.Offset), BackgroundTransparency = 1}):Play()
+    task.wait(0.25)
+    if ui then ui:Destroy() end
+    for i, v in ipairs(Active) do
+        TweenService:Create(v, TweenInfo.new(0.2), {Position = UDim2.new(1, -280, 0.15, (i - 1) * 80)}):Play()
+    end
+end
+
+--------------------------------------------------
+-- DRAG SYSTEM (MOBILE FRIENDLY)
+--------------------------------------------------
+local function MakeDraggable(gui)
+    local dragging, dragInput, dragStart, startPos
+    gui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = gui.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    gui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+--------------------------------------------------
+-- SCRIPT DATABASE
+--------------------------------------------------
+local GameScripts = {
+    [2753915549] = {Hub = "Xeter Hub", Script = "loadstring(game:HttpGet('https://pastebin.com/2XYmcadJ'))()"},
+    [4442245229] = {Hub = "Xeter Hub", Script = "loadstring(game:HttpGet('https://pastebin.com/2XYmcadJ'))()"},
+    [7449423635] = {Hub = "Xeter Hub", Script = "loadstring(game:HttpGet('https://pastebin.com/2XYmcadJ'))()"},
+    [4924144102] = {Hub = "Pastefy Hub", Script = "loadstring(game:HttpGet('https://pastefy.app/5fXAzICf/raw'))()"},
+    [920587237]  = {Hub = "Ringta Hub", Script = "loadstring(game:HttpGet('https://raw.githubusercontent.com/eeeiqjj876y/adoptme.github.io/refs/heads/main/ringta.lua'))()"},
+    [17625359962]= {Hub = "Rivals Modern", Script = "loadstring(game:HttpGet('https://raw.githubusercontent.com/EndOverdosing/Soluna-API/refs/heads/main/rivals-modern.lua', true))()"},
+    [6516436624] = {Hub = "KEYLESS Slap Battles", Script = "getgenv().SCRIPT_KEY = 'KEYLESS'; loadstring(game:HttpGet('https://api.jnkie.com/api/v1/luascripts/public/abd3cc54d2dc7de4a091fb19c8f4ea9e15e939e7ecc88b475e6956e8af94ad6f/download'))()"},
+    [142823291]  = {Hub = "MM2 Pastes", Script = "loadstring(game:HttpGet('https://api.pastes.dev/2vxzS1L4g6'))()"},
+    [16732694052]= {Hub = "ScriptHubV3Xeno", Script = "loadstring(game:HttpGet('https://raw.githubusercontent.com/scripthubekitten/scripthubv3xeno/refs/heads/main/scripthubv3', true))()"},
+    [15538220025]= {Hub = "Vape Voidware", Script = "loadstring(game:HttpGet('https://raw.githubusercontent.com/VapeVoidware/VW-Add/main/loader.lua', true))()"},
+    [8737899170] = {Hub = "Vape Voidware", Script = "loadstring(game:HttpGet('https://raw.githubusercontent.com/VapeVoidware/VW-Add/main/loader.lua', true))()"},
+    [77747658251236] = {Hub = "PollutedHUB", Script = "loadstring(game:HttpGet('https://pastebin.com/raw/3rBK8ZRG'))()"}
+}
+
+local DetectedData = GameScripts[PlaceId]
+local DetectedHubName = DetectedData and DetectedData.Hub or "No Information"
+local DetectedScript = DetectedData and DetectedData.Script or nil
+
+--------------------------------------------------
+-- MAIN UI SETUP
+--------------------------------------------------
+local MainGui = Instance.new("ScreenGui", CoreGui)
+MainGui.Name = "NabilHubOmnipotence"
+MainGui.IgnoreGuiInset = true
+
+local PopupBtn = Instance.new("ImageButton", MainGui)
+PopupBtn.Name = "PopupIcon"
+PopupBtn.Size = UDim2.new(0, 55, 0, 55)
+PopupBtn.Position = UDim2.new(0.5, 0, 0.15, 0)
+PopupBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+PopupBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+PopupBtn.AutoButtonColor = false
+PopupBtn.Visible = false
+Instance.new("UICorner", PopupBtn).CornerRadius = UDim.new(1, 0)
+
+local NeonN = Instance.new("TextLabel", PopupBtn)
+NeonN.Size = UDim2.new(1, 0, 1, 0)
+NeonN.BackgroundTransparency = 1
+NeonN.Text = "N"
+NeonN.TextColor3 = Color3.fromRGB(255, 255, 255)
+NeonN.Font = Enum.Font.GothamBold
+NeonN.TextSize = 30
+NeonN.ZIndex = 2
+
+local InnerGlow = Instance.new("UIStroke", NeonN)
+InnerGlow.Thickness = 2.5
+InnerGlow.Color = Color3.fromRGB(0, 255, 127)
+InnerGlow.Transparency = 0
+
+local OuterGlow = Instance.new("UIStroke", NeonN)
+OuterGlow.Thickness = 5
+OuterGlow.Color = Color3.fromRGB(0, 150, 255)
+OuterGlow.Transparency = 0.6
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if math.random(1, 10) > 8 then
+            NeonN.TextTransparency = 0.5
+            InnerGlow.Transparency = 0.5
+            task.wait(0.05)
+            NeonN.TextTransparency = 0
+            InnerGlow.Transparency = 0
+        end
+    end
+end)
+
+local pulseInfo = TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+TweenService:Create(OuterGlow, pulseInfo, {Thickness = 8, Transparency = 0.8}):Play()
+MakeDraggable(PopupBtn)
+
+--------------------------------------------------
+-- OMNIPOTENCE DUAL-GLOW SYSTEM (BLUE & PURPLE)
+--------------------------------------------------
+local function ApplyOmniGlow(parent, isCircle)
+    local Glow = Instance.new("Frame", parent)
+    Glow.Name = "OmniGlow"
+    Glow.ZIndex = -1
+    Glow.Size = UDim2.new(1, 4, 1, 4)
+    Glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Glow.AnchorPoint = Vector2.new(0.5, 0.5)
+    Glow.BackgroundColor3 = Color3.new(1, 1, 1)
+    
+    local Corner = Instance.new("UICorner", Glow)
+    Corner.CornerRadius = isCircle and UDim.new(1, 0) or UDim.new(0, 14)
+
+    local Gradient = Instance.new("UIGradient", Glow)
+    Gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 150, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(170, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 150, 255))
+    }
+
+    task.spawn(function()
+        while task.wait() do
+            Gradient.Rotation += 2.5
+            if not Glow.Parent then break end
+        end
+    end)
+
+    local pulseInfo2 = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+    TweenService:Create(Glow, pulseInfo2, {Size = UDim2.new(1, 12, 1, 12), BackgroundTransparency = 0.6}):Play()
+end
+
+ApplyOmniGlow(PopupBtn, true)
+
+local MainFrame = Instance.new("Frame", MainGui)
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 340, 0, 260)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+MainFrame.Visible = false
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+MakeDraggable(MainFrame)
+ApplyOmniGlow(MainFrame, false)
+
+--------------------------------------------------
+-- MOVING GLOW BORDER (BLUE & PURPLE)
+--------------------------------------------------
+local BorderGlow = Instance.new("Frame", MainFrame)
+BorderGlow.Name = "GlowBorder"
+BorderGlow.ZIndex = -1
+BorderGlow.Size = UDim2.new(1, 4, 1, 4)
+BorderGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+BorderGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+BorderGlow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+
+local BorderCorner = Instance.new("UICorner", BorderGlow)
+BorderCorner.CornerRadius = UDim.new(0, 14)
+
+local BorderStroke = Instance.new("UIStroke", BorderGlow)
+BorderStroke.Thickness = 2
+BorderStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local Gradient = Instance.new("UIGradient", BorderGlow)
+Gradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 150, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(170, 0, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 150, 255))
+}
+
+task.spawn(function()
+    while true do
+        Gradient.Rotation += 2
+        task.wait(0.01)
+        if not BorderGlow or not BorderGlow.Parent then break end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        TweenService:Create(BorderGlow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0.4}):Play()
+        task.wait(1.5)
+        TweenService:Create(BorderGlow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0}):Play()
+        task.wait(1.5)
+        if not BorderGlow or not BorderGlow.Parent then break end
+    end
+end)
+
+local Topbar = Instance.new("Frame", MainFrame)
+Topbar.Size = UDim2.new(1, 0, 0, 40)
+Topbar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+Instance.new("UICorner", Topbar).CornerRadius = UDim.new(0, 12)
+
+local TitleText = Instance.new("TextLabel", Topbar)
+TitleText.Size = UDim2.new(1, -50, 1, 0)
+TitleText.Position = UDim2.new(0, 15, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "† NabilHub †"
+TitleText.TextColor3 = Color3.fromRGB(229, 228, 226)
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextSize = 16
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+
+local CloseBtn = Instance.new("TextButton", Topbar)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+
+local SettingsBtn = Instance.new("TextButton", Topbar)
+SettingsBtn.Name = "SettingsBtn"
+SettingsBtn.Size = UDim2.new(0, 30, 0, 30)
+SettingsBtn.Position = UDim2.new(1, -70, 0, 5)
+SettingsBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+SettingsBtn.Text = "⚙️"
+SettingsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SettingsBtn.Font = Enum.Font.GothamBold
+SettingsBtn.TextSize = 16
+Instance.new("UICorner", SettingsBtn).CornerRadius = UDim.new(0, 6)
+
+--------------------------------------------------
+-- NAVIGATION & SEARCH SYSTEM
+--------------------------------------------------
+local UniButtons = {}
+local TabBar = Instance.new("Frame", MainFrame)
+TabBar.Size = UDim2.new(1, 0, 0, 30)
+TabBar.Position = UDim2.new(0, 0, 0, 40)
+TabBar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+
+local Tab1Btn = Instance.new("TextButton", TabBar)
+Tab1Btn.Size = UDim2.new(0.5, 0, 1, 0)
+Tab1Btn.BackgroundTransparency = 1
+Tab1Btn.Text = "Execution"
+Tab1Btn.TextColor3 = Color3.fromRGB(0, 255, 127)
+Tab1Btn.Font = Enum.Font.GothamBold
+
+local Tab2Btn = Instance.new("TextButton", TabBar)
+Tab2Btn.Size = UDim2.new(0.5, 0, 1, 0)
+Tab2Btn.Position = UDim2.new(0.5, 0, 0, 0)
+Tab2Btn.BackgroundTransparency = 1
+Tab2Btn.Text = "Universal"
+Tab2Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+Tab2Btn.Font = Enum.Font.GothamBold
+
+local Container = Instance.new("Frame", MainFrame)
+Container.Size = UDim2.new(1, 0, 1, -70)
+Container.Position = UDim2.new(0, 0, 0, 70)
+Container.BackgroundTransparency = 1
+
+local ExecPage = Instance.new("ScrollingFrame", Container)
+ExecPage.Size = UDim2.new(1, -20, 1, -10)
+ExecPage.Position = UDim2.new(0, 10, 0, 5)
+ExecPage.BackgroundTransparency = 1
+ExecPage.ScrollBarThickness = 2
+Instance.new("UIListLayout", ExecPage).Padding = UDim.new(0, 8)
+
+local UniPage = Instance.new("ScrollingFrame", Container)
+UniPage.Size = UDim2.new(1, -20, 1, -10)
+UniPage.Position = UDim2.new(0, 10, 0, 5)
+UniPage.BackgroundTransparency = 1
+UniPage.Visible = false
+UniPage.ScrollBarThickness = 2
+Instance.new("UIListLayout", UniPage).Padding = UDim.new(0, 8)
+
+local SearchBox = Instance.new("TextBox", UniPage)
+SearchBox.Name = "SearchBox"
+SearchBox.Size = UDim2.new(1, 0, 0, 30)
+SearchBox.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+SearchBox.PlaceholderText = "Search Scripts..."
+SearchBox.Text = ""
+SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchBox.Font = Enum.Font.GothamBold
+SearchBox.TextSize = 14
+Instance.new("UICorner", SearchBox)
+
+local SearchStroke = Instance.new("UIStroke", SearchBox)
+SearchStroke.Color = Color3.fromRGB(0, 150, 255)
+SearchStroke.Thickness = 1.5
+
+--------------------------------------------------
+-- PAGE CONTENT (EXECUTION)
+--------------------------------------------------
+local UserTxt = Instance.new("TextLabel", ExecPage)
+UserTxt.Size = UDim2.new(1, 0, 0, 20)
+UserTxt.BackgroundTransparency = 1
+UserTxt.Text = "User: " .. lp.Name .. " | " .. GameName
+UserTxt.TextColor3 = Color3.fromRGB(200, 200, 200)
+UserTxt.Font = Enum.Font.Gotham
+UserTxt.TextSize = 11
+
+local HubStatus = Instance.new("TextLabel", ExecPage)
+HubStatus.Size = UDim2.new(1, 0, 0, 30)
+HubStatus.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+HubStatus.Text = "Status: " .. DetectedHubName
+HubStatus.TextColor3 = (DetectedScript and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(255, 100, 100))
+HubStatus.Font = Enum.Font.GothamBold
+Instance.new("UICorner", HubStatus)
+
+local ExecBtn = Instance.new("TextButton", ExecPage)
+ExecBtn.Size = UDim2.new(1, 0, 0, 40)
+ExecBtn.BackgroundColor3 = (DetectedScript and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(60, 60, 60))
+ExecBtn.Text = "RUN SCRIPT"
+ExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExecBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", ExecBtn)
+
+ExecBtn.MouseButton1Click:Connect(function()
+    if DetectedScript then 
+        OmniNotify.Show("Execution", "Injecting script for: " .. GameName, 3, "info")
+        loadstring(DetectedScript)() 
+    else
+        OmniNotify.Show("Error", "No script found for this game!", 5, "error")
+    end
+end)
+
+--------------------------------------------------
+-- PAGE CONTENT (UNIVERSAL + SEARCH LOGIC)
+--------------------------------------------------
+local function AddUni(name, url, isWarning)
+    local b = Instance.new("TextButton", UniPage)
+    b.Size = UDim2.new(1, 0, 0, 35)
+    b.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    b.Text = name
+    b.TextColor3 = isWarning and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(255, 255, 255)
+    b.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", b)
+    
+    UniButtons[name] = b
+    b.MouseButton1Click:Connect(function() loadstring(game:HttpGet(url))() end)
+end
+
+AddUni("Infinite Yield", "https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source")
+AddUni("Fearless Chat Bypass", "https://raw.githubusercontent.com/fearlessd3v/TEAM-FEARLESS/refs/heads/main/fearless-chat-bypass")
+AddUni("Every Emote", "https://rawscripts.net/raw/Universal-Script-7yd7-ALL-EMOTES-UGC-CREATOR-111335")
+AddUni("Executor", "https://pastebin.com/raw/kshwYSVH")
+AddUni("Dex", "https://raw.githubusercontent.com/infyiff/backup/main/dex.lua")
+AddUni("Hydroxide (Remote Spy)", "https://raw.githubusercontent.com/Upbolt/Hydroxide/revision/init.lua")
+AddUni("SimpleSpy V3", "https://raw.githubusercontent.com/exxtremestuffs/SimpleSpySource/master/SimpleSpy.lua")
+AddUni("OwlHub (Universal)", "https://raw.githubusercontent.com/CriShoux/OwlHub/master/OwlHub.lua")
+AddUni("V.G Hub (Multi-Game)", "https://raw.githubusercontent.com/1201n/V.G-Hub/main/V.G%20Hub")
+AddUni("Mobile Fly V3", "https://raw.githubusercontent.com/Silly-Chat-Bypass/Fly-Script/main/Fly.lua")
+AddUni("Turtle Hub", "https://raw.githubusercontent.com/S-S-R-S/Roblox-Scripts/main/TurtleHub.lua")
+AddUni("Blue Admin", "https://raw.githubusercontent.com/Frozmer/BlueAdmin/main/Source.lua")
+AddUni("CMD-X", "https://raw.githubusercontent.com/CMD-X/CMD-X/master/Source")
+AddUni("Nameless Admin", "https://raw.githubusercontent.com/FilteringEnabled/NamelessAdmin/main/Source")
+AddUni("Fates Admin", "https://raw.githubusercontent.com/fatesc/fates-admin/main/main.lua")
+AddUni("Unnamed ESP", "https://raw.githubusercontent.com/ic3w0lf22/Unnamed-ESP/master/Source.lua")
+AddUni("Universal Fly (Mobile)", "https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.lua")
+AddUni("Click Teleport", "https://raw.githubusercontent.com/BaconDeV/ClickTP/main/Script.lua")
+AddUni("Panda Hub", "https://raw.githubusercontent.com/Panda-Development/PandaHub/main/Loader.lua")
+
+SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local Input = SearchBox.Text:lower()
+    for Name, Button in pairs(UniButtons) do
+        Button.Visible = string.find(Name:lower(), Input) and true or false
+    end
+end)
+
+local SettingsPage = Instance.new("ScrollingFrame", Container)
+SettingsPage.Size = UDim2.new(1, -20, 1, -10)
+SettingsPage.Position = UDim2.new(0, 10, 0, 5)
+SettingsPage.BackgroundTransparency = 1
+SettingsPage.Visible = false
+SettingsPage.ScrollBarThickness = 0
+Instance.new("UIListLayout", SettingsPage).Padding = UDim.new(0, 8)
+
+--------------------------------------------------
+-- OMNIPOTENCE DYNAMIC CANVAS AUTO-RESIZE
+--------------------------------------------------
+local function AutoResizeCanvas(scrollingFrame)
+    local layout = scrollingFrame:FindFirstChildOfClass("UIListLayout") or scrollingFrame:FindFirstChildOfClass("UIGridLayout")
+    if layout then
+        layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 20)
+        end)
+    end
+end
+
+AutoResizeCanvas(ExecPage)
+AutoResizeCanvas(UniPage)
+AutoResizeCanvas(SettingsPage)
+
+--------------------------------------------------
+-- TOGGLE SYSTEM
+--------------------------------------------------
+local function AddToggle(name, defaultState, onEnable, onDisable)
+    local state = defaultState or false
+    local btn = Instance.new("TextButton", SettingsPage)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.BackgroundColor3 = Color3.fromRGB(30,30,35)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    Instance.new("UICorner", btn)
+
+    local function Update()
+        btn.Text = name .. ": " .. (state and "ON" or "OFF")
+        btn.TextColor3 = state and Color3.fromRGB(0,255,127) or Color3.fromRGB(200,200,200)
+        btn.BackgroundColor3 = state and Color3.fromRGB(20,40,30) or Color3.fromRGB(30,30,35)
+    end
+
+    local function Apply()
+        if state then if onEnable then onEnable() end else if onDisable then onDisable() end end
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        Update()
+        Apply()
+    end)
+
+    Update()
+    Apply()
+end
+
+-- 1. FPS BOOST
+AddToggle("FPS BOOST", false, function()
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    setfpscap(240)
+    OmniNotify.Show("SYSTEM", "Graphics Optimized for Performance", 3, "success")
+end, function()
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+    OmniNotify.Show("SYSTEM", "Graphics set to Automatic", 3, "info")
+end)
+
+-- 2. POTATO MODE
+local originalMaterials = {}
+AddToggle("POTATO MODE", false, function()
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("BasePart") and not v:IsA("MeshPart") then
+            originalMaterials[v] = v.Material
+            v.Material = Enum.Material.SmoothPlastic
+        end
+    end
+    OmniNotify.Show("RENDERER", "Textures Stripped (Potato Mode)", 4, "success")
+end, function()
+    for v, mat in pairs(originalMaterials) do
+        if v and v.Parent then v.Material = mat end
+    end
+    OmniNotify.Show("RENDERER", "Textures Restored", 3, "info")
+end)
+
+-- 3. ANTI-AFK
+local antiAfkConnection
+AddToggle("ANTI-AFK", false, function()
+    antiAfkConnection = lp.Idled:Connect(function()
+        game:GetService("VirtualUser"):CaptureController()
+        game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+    end)
+    OmniNotify.Show("SECURITY", "Anti-AFK System: ACTIVE", 3, "success")
+end, function()
+    if antiAfkConnection then antiAfkConnection:Disconnect() end
+    OmniNotify.Show("SECURITY", "Anti-AFK System: DISABLED", 3, "warning")
+end)
+
+-- 4. FULLBRIGHT
+AddToggle("FULLBRIGHT", false, function()
+    Lighting.Brightness = 2
+    Lighting.ClockTime = 14
+    Lighting.FogEnd = 100000
+    Lighting.GlobalShadows = false
+    OmniNotify.Show("LIGHTING", "Shadows Disabled | Fullbright ON", 3, "success")
+end, function()
+    Lighting.GlobalShadows = true
+    OmniNotify.Show("LIGHTING", "Default Lighting Restored", 3, "info")
+end)
+
+-- 5. STREAMER MODE
+local StreamerMode = false
+AddToggle("STREAMER MODE", false, function()
+    StreamerMode = true
+    UserTxt.Text = "User: Protected | Game: " .. GameName
+    OmniNotify.Show("PRIVACY", "Sensitive Info Hidden", 3, "success")
+end, function()
+    StreamerMode = false
+    UserTxt.Text = "User: " .. lp.Name .. " | " .. GameName
+end)
+
+-- 6. CLICK TP LOGIC
+local ClickTPEnabled = false
+AddToggle("CLICK TP", false, function()
+    ClickTPEnabled = true
+    OmniNotify.Show("MOVEMENT", "Tap/Click anywhere to Teleport", 3, "success")
+end, function()
+    ClickTPEnabled = false
+end)
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if not processed and ClickTPEnabled then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            local pos = UserInputService:GetMouseLocation()
+            local ray = game.Workspace.CurrentCamera:ViewportPointToRay(pos.X, pos.Y)
+            local raycastResult = game.Workspace:Raycast(ray.Origin, ray.Direction * 1000)
+            
+            if raycastResult then
+                local character = lp.Character
+                if character and character:FindFirstChild("HumanoidRootPart") then
+                    character.HumanoidRootPart.CFrame = CFrame.new(raycastResult.Position + Vector3.new(0, 3, 0))
+                    OmniNotify.Show("TELEPORT", "Moved to target location", 1, "info")
+                end
+            end
+        end
+    end
+end)
+
+-- 7. PLAYER ESP
+local ESP_Table = {}
+AddToggle("PLAYER ESP", false, function()
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= lp and v.Character then
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "OmniESP"
+            highlight.FillColor = Color3.fromRGB(0, 255, 127)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.FillTransparency = 0.5
+            highlight.Parent = v.Character
+            ESP_Table[v] = highlight
+        end
+    end
+    OmniNotify.Show("VISUALS", "Player Highlights Enabled", 3, "success")
+end, function()
+    for _, v in pairs(ESP_Table) do if v then v:Destroy() end end
+    ESP_Table = {}
+    OmniNotify.Show("VISUALS", "ESP Disabled", 3, "warning")
+end)
+
+--------------------------------------------------
+-- EXTRA BUTTONS COMPONENT
+--------------------------------------------------
+local function AddButton(name, color, callback)
+    local btn = Instance.new("TextButton", SettingsPage)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    btn.Text = name
+    btn.TextColor3 = color
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    Instance.new("UICorner", btn)
+    btn.MouseButton1Click:Connect(callback)
+end
+
+AddButton("REJOIN SERVER", Color3.fromRGB(255, 200, 0), function()
+    OmniNotify.Show("NETWORK", "Teleporting to same instance...", 4, "warning")
+    task.wait(0.2)
+    game:GetService("TeleportService"):Teleport(PlaceId, lp)
+end)
+
+AddButton("SERVER HOP", Color3.fromRGB(170, 0, 255), function()
+    OmniNotify.Show("NETWORK", "Finding a new server...", 4, "info")
+    local TPS = game:GetService("TeleportService")
+    local success, result = pcall(function()
+        return game:HttpGet("https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=Desc&limit=100")
+    end)
+    if success then
+        local data = HttpService:JSONDecode(result)
+        for _, v in pairs(data.data) do
+            if v.playing < v.maxPlayers and v.id ~= game.JobId then
+                TPS:TeleportToPlaceInstance(PlaceId, v.id)
+                break
+            end
+        end
+    else
+        OmniNotify.Show("ERROR", "Server list fetch failed!", 4, "error")
+    end
+end)
+
+AddButton("PANIC: HIDE ALL", Color3.fromRGB(255, 0, 0), function()
+    MainFrame.Visible = false
+    PopupBtn.Visible = false
+    NotifyGui.Enabled = false
+    OmniNotify.Show("PANIC", "Emergency Hide Activated. Re-execute to show.", 3, "error")
+end)
+
+AddButton("CLEAN MEMORY", Color3.fromRGB(0, 200, 255), function()
+    local oldMem = math.floor(game:GetService("Stats"):GetTotalMemoryUsageMb())
+    for _ = 1, 3 do collectgarbage("collect") end
+    local newMem = math.floor(game:GetService("Stats"):GetTotalMemoryUsageMb())
+    OmniNotify.Show("CLEANER", "Saved: " .. (oldMem - newMem) .. "MB of RAM", 4, "success")
+end)
+
+AddButton("COPY DISCORD", Color3.fromRGB(88, 101, 242), function()
+    setclipboard("https://discord.gg/48gdcmyYu")
+    OmniNotify.Show("CLIPBOARD", "Discord Invite Link Copied!", 3, "success")
+end)
+
+AddButton("DESTROY GUI", Color3.fromRGB(255, 60, 60), function()
+    OmniNotify.Show("TERMINATE", "Shutting down NabilHub...", 2, "error")
+    task.wait(0.3)
+    MainGui:Destroy()
+end)
+
+--------------------------------------------------
+-- OMNIPOTENCE CUSTOM AUDIO PLAYER V2
+--------------------------------------------------
+--------------------------------------------------
+-- OMNIPOTENCE CUSTOM AUDIO PLAYER (FIXED)
+--------------------------------------------------
+
+local SoundService = game:GetService("SoundService")
+
+local CustomAudio = Instance.new("Sound")
+CustomAudio.Name = "OmniCustomAudio"
+CustomAudio.Volume = 2
+CustomAudio.Looped = true
+CustomAudio.Parent = SoundService
+
+local AudioEnabled = false
+local CurrentAudioId = ""
+
+--------------------------------------------------
+-- AUDIO UI
+--------------------------------------------------
+
+local AudioFrame = Instance.new("Frame", SettingsPage)
+AudioFrame.Size = UDim2.new(1, 0, 0, 90)
+AudioFrame.BackgroundColor3 = Color3.fromRGB(30,30,35)
+AudioFrame.BorderSizePixel = 0
+Instance.new("UICorner", AudioFrame).CornerRadius = UDim.new(0,10)
+
+local AudioTitle = Instance.new("TextLabel", AudioFrame)
+AudioTitle.Size = UDim2.new(1, -10, 0, 20)
+AudioTitle.Position = UDim2.new(0, 10, 0, 5)
+AudioTitle.BackgroundTransparency = 1
+AudioTitle.Text = "CUSTOM AUDIO PLAYER"
+AudioTitle.Font = Enum.Font.GothamBold
+AudioTitle.TextSize = 13
+AudioTitle.TextColor3 = Color3.fromRGB(255,255,255)
+AudioTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+local AudioBox = Instance.new("TextBox", AudioFrame)
+AudioBox.Size = UDim2.new(1, -20, 0, 32)
+AudioBox.Position = UDim2.new(0, 10, 0, 28)
+AudioBox.BackgroundColor3 = Color3.fromRGB(20,20,25)
+AudioBox.PlaceholderText = "Paste Audio ID..."
+AudioBox.Text = ""
+AudioBox.ClearTextOnFocus = false
+AudioBox.Font = Enum.Font.Gotham
+AudioBox.TextSize = 14
+AudioBox.TextColor3 = Color3.fromRGB(255,255,255)
+
+Instance.new("UICorner", AudioBox).CornerRadius = UDim.new(0,8)
+
+local AudioStroke = Instance.new("UIStroke", AudioBox)
+AudioStroke.Color = Color3.fromRGB(0,150,255)
+AudioStroke.Thickness = 1.2
+
+local ToggleAudio = Instance.new("TextButton", AudioFrame)
+ToggleAudio.Size = UDim2.new(1, -20, 0, 22)
+ToggleAudio.Position = UDim2.new(0, 10, 1, -28)
+ToggleAudio.BackgroundColor3 = Color3.fromRGB(40,20,20)
+ToggleAudio.Text = "AUDIO: OFF"
+ToggleAudio.Font = Enum.Font.GothamBold
+ToggleAudio.TextSize = 13
+ToggleAudio.TextColor3 = Color3.fromRGB(255,255,255)
+
+Instance.new("UICorner", ToggleAudio).CornerRadius = UDim.new(0,6)
+
+--------------------------------------------------
+-- AUDIO CORE
+--------------------------------------------------
+
+local function ExtractAudioId(text)
+    return text:match("%d+")
+end
+
+local function UpdateAudio()
+
+    if AudioEnabled and CurrentAudioId ~= "" then
+
+        pcall(function()
+
+            CustomAudio:Stop()
+            CustomAudio.TimePosition = 0
+
+            CustomAudio.SoundId = "rbxassetid://" .. CurrentAudioId
+            CustomAudio.Volume = 2
+            CustomAudio.Looped = true
+
+            task.wait(0.15)
+
+            CustomAudio:Play()
+        end)
+
+        ToggleAudio.Text = "AUDIO: ON"
+        ToggleAudio.BackgroundColor3 = Color3.fromRGB(20,60,40)
+
+        OmniNotify.Show(
+            "AUDIO SYSTEM",
+            "Now Playing: " .. CurrentAudioId,
+            3,
+            "success"
+        )
+
+    else
+
+        pcall(function()
+            CustomAudio:Stop()
+            CustomAudio.TimePosition = 0
+            CustomAudio.SoundId = ""
+        end)
+
+        ToggleAudio.Text = "AUDIO: OFF"
+        ToggleAudio.BackgroundColor3 = Color3.fromRGB(40,20,20)
+
+        OmniNotify.Show(
+            "AUDIO SYSTEM",
+            "Audio Disabled",
+            2,
+            "warning"
+        )
+    end
+end
+
+--------------------------------------------------
+-- INPUT EVENTS
+--------------------------------------------------
+
+AudioBox.FocusLost:Connect(function()
+
+    local extracted = ExtractAudioId(AudioBox.Text)
+
+    if extracted then
+
+        CurrentAudioId = extracted
+        AudioBox.Text = extracted
+
+        OmniNotify.Show(
+            "AUDIO",
+            "Audio ID Set",
+            2,
+            "info"
+        )
+
+        if AudioEnabled then
+            UpdateAudio()
+        end
+
+    else
+
+        OmniNotify.Show(
+            "AUDIO ERROR",
+            "Invalid Audio ID",
+            3,
+            "error"
+        )
+    end
+end)
+
+ToggleAudio.MouseButton1Click:Connect(function()
+
+    if CurrentAudioId == "" then
+
+        OmniNotify.Show(
+            "AUDIO ERROR",
+            "Paste Audio ID First",
+            3,
+            "warning"
+        )
+
+        return
+    end
+
+    AudioEnabled = not AudioEnabled
+    UpdateAudio()
+end)
+
+-- AUTO REJOIN ON KICK
+local AutoRejoinEnabled = true
+CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+    if child.Name == "ErrorPrompt" and AutoRejoinEnabled then
+        OmniNotify.Show("SYSTEM", "Kick detected! Rejoining...", 5, "warning")
+        task.wait(2)
+        game:GetService("TeleportService"):Teleport(PlaceId, lp)
+    end
+end)
+
+--------------------------------------------------
+-- CUSTOM AUDIO PLAYER
+--------------------------------------------------
+--------------------------------------------------
+-- INTERACTION ROUTINES
+--------------------------------------------------
+local function HideAll()
+    ExecPage.Visible = false
+    UniPage.Visible = false
+    SettingsPage.Visible = false
+    Tab1Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Tab2Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+end
+
+Tab1Btn.MouseButton1Click:Connect(function()
+    HideAll()
+    ExecPage.Visible = true
+    Tab1Btn.TextColor3 = Color3.fromRGB(0, 255, 127)
+end)
+
+Tab2Btn.MouseButton1Click:Connect(function()
+    HideAll()
+    UniPage.Visible = true
+    Tab2Btn.TextColor3 = Color3.fromRGB(0, 255, 127)
+end)
+
+SettingsBtn.MouseButton1Click:Connect(function()
+    HideAll()
+    SettingsPage.Visible = true
+end)
+
+CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; PopupBtn.Visible = true end)
+PopupBtn.MouseButton1Click:Connect(function() MainFrame.Visible = true; PopupBtn.Visible = false end)
+
+--------------------------------------------------
+-- OMNIPOTENCE CINEMATIC LOADING SYSTEM (30s)
+--------------------------------------------------
+local duration = 30
+local startTime = tick()
+local running = true
+
+local LScreen = Instance.new("ScreenGui", CoreGui)
+LScreen.IgnoreGuiInset = true
+
+local LFrame = Instance.new("Frame", LScreen)
+LFrame.Size = UDim2.new(1,0,1,0)
+LFrame.BackgroundColor3 = Color3.fromRGB(5,5,8)
+LFrame.ClipsDescendants = true
+
+local blur = Instance.new("BlurEffect", Lighting)
+blur.Size = 0
+TweenService:Create(blur, TweenInfo.new(1), {Size = 20}):Play()
+
+local Sound = Instance.new("Sound", LFrame)
+Sound.SoundId = "rbxassetid://96760299701814"
+Sound.Volume = 2
+Sound.Looped = true
+Sound:Play()
+
+local function CreateGrid(trans)
+    local g = Instance.new("ImageLabel", LFrame)
+    g.Size = UDim2.new(2,0,2,0)
+    g.Position = UDim2.new(-0.5,0,-0.5,0)
+    g.BackgroundTransparency = 1
+    g.Image = "rbxassetid://13160452175"
+    g.ImageColor3 = Color3.fromRGB(0,255,127)
+    g.ImageTransparency = trans
+    g.ScaleType = Enum.ScaleType.Tile
+    g.TileSize = UDim2.new(0,64,0,64)
+    g.ZIndex = 1
+    return g
+end
+
+local Grid1 = CreateGrid(0.95)
+local Grid2 = CreateGrid(0.98)
+
+task.spawn(function()
+    while running and LScreen.Parent do
+        Grid1.Rotation += 0.1
+        Grid2.Rotation -= 0.2
+        Grid1.Position += UDim2.new(0,0.3,0,0.3)
+        Grid2.Position += UDim2.new(0,-0.2,0,0.2)
+        task.wait(0.016)
+    end
+end)
+
+local LoadTitle = Instance.new("TextLabel", LFrame)
+LoadTitle.Size = UDim2.new(1,0,0.2,0)
+LoadTitle.Position = UDim2.new(0,0,0.35,0)
+LoadTitle.BackgroundTransparency = 1
+LoadTitle.TextScaled = true
+LoadTitle.Font = Enum.Font.GothamBold
+LoadTitle.TextColor3 = Color3.new(1,1,1)
+LoadTitle.ZIndex = 5
+
+local function Ghost(color)
+    local g = LoadTitle:Clone()
+    g.TextColor3 = color
+    g.TextTransparency = 0.5
+    g.ZIndex = 4
+    g.Parent = LFrame
+    return g
+end
+
+local Red = Ghost(Color3.fromRGB(255,60,60))
+local Blue = Ghost(Color3.fromRGB(60,150,255))
+
+local Sub = Instance.new("TextLabel", LFrame)
+Sub.Size = UDim2.new(1,0,0.05,0)
+Sub.Position = UDim2.new(0,0,0.55,0)
+Sub.BackgroundTransparency = 1
+Sub.TextScaled = true
+Sub.Font = Enum.Font.Code
+Sub.TextColor3 = Color3.fromRGB(0,255,127)
+Sub.ZIndex = 5
+
+local BarBG = Instance.new("Frame", LFrame)
+BarBG.Size = UDim2.new(0.6,0,0.02,0)
+BarBG.Position = UDim2.new(0.2,0,0.65,0)
+BarBG.BackgroundColor3 = Color3.fromRGB(15,15,20)
+BarBG.ZIndex = 5
+Instance.new("UICorner",BarBG)
+
+local Bar = Instance.new("Frame", BarBG)
+Bar.Size = UDim2.new(0,0,1,0)
+Bar.BackgroundColor3 = Color3.fromRGB(0,255,127)
+Instance.new("UICorner",Bar)
+
+for i = 1,2 do
+    local glow = Instance.new("Frame", Bar)
+    glow.Size = UDim2.new(1,20*i,1,10*i)
+    glow.Position = UDim2.new(0.5,0,0.5,0)
+    glow.AnchorPoint = Vector2.new(0.5,0.5)
+    glow.BackgroundColor3 = Color3.fromRGB(0,255,127)
+    glow.BackgroundTransparency = 0.7
+    glow.BorderSizePixel = 0
+    Instance.new("UICorner", glow)
+end
+
+local Scan = Instance.new("Frame", LFrame)
+Scan.Size = UDim2.new(1,0,0,2)
+Scan.BackgroundColor3 = Color3.fromRGB(0,255,127)
+Scan.BackgroundTransparency = 0.8
+Scan.ZIndex = 6
+
+task.spawn(function()
+    while running do
+        Scan.Position = UDim2.new(0,0,math.random(),0)
+        task.wait(0.05)
+    end
+end)
+
+local SkipBtn = Instance.new("TextButton", LFrame)
+SkipBtn.Name = "SkipLoadingBtn"
+SkipBtn.Size = UDim2.new(0, 100, 0, 35)
+SkipBtn.Position = UDim2.new(1, -120, 1, -55)
+SkipBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+SkipBtn.Text = "SKIP >>>"
+SkipBtn.TextColor3 = Color3.fromRGB(0, 255, 127)
+SkipBtn.Font = Enum.Font.GothamBold
+SkipBtn.TextSize = 13
+SkipBtn.ZIndex = 15
+Instance.new("UICorner", SkipBtn).CornerRadius = UDim.new(0, 8)
+
+local SkipStroke = Instance.new("UIStroke", SkipBtn)
+SkipStroke.Color = Color3.fromRGB(0, 255, 127)
+SkipStroke.Thickness = 1.5
+SkipStroke.Transparency = 0.4
+
+local function CleanDismiss()
+    if not running then return end
+    running = false
+    
+    TweenService:Create(Sound, TweenInfo.new(0.15), {Volume = 0}):Play()
+    TweenService:Create(blur, TweenInfo.new(0.2), {Size = 0}):Play()
+    
+    local FinalFlash = Instance.new("Frame", LScreen)
+    FinalFlash.Size = UDim2.new(1, 0, 1, 0)
+    FinalFlash.BackgroundColor3 = Color3.new(1, 1, 1)
+    FinalFlash.ZIndex = 20
+    TweenService:Create(FinalFlash, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+    
+    task.wait(0.1)
+    Sound:Stop()
+    LScreen:Destroy() 
+    pcall(function() blur:Destroy() end)
+    
+    if MainFrame then MainFrame.Visible = true end
+end
+SkipBtn.MouseButton1Click:Connect(CleanDismiss)
+
+local styles = {
+    {t="NABIL HUB", f=Enum.Font.GothamBold, c=Color3.fromRGB(0,255,127)},
+    {t="N Λ B I L", f=Enum.Font.SciFi, c=Color3.fromRGB(255,255,255)},
+    {t="OMNIPOTENCE", f=Enum.Font.Arcade, c=Color3.fromRGB(0,255,127)},
+    {t="nabil.exe", f=Enum.Font.Code, c=Color3.fromRGB(150,150,150)}
+}
+
+local AssetsToLoad = {
+    "rbxassetid://6981487172",
+    "rbxassetid://13160452175",
+    "rbxassetid://6031075929",
+    "rbxassetid://11419713319"
+}
+
+local function PreloadAssets(subLabel)
+    local total = #AssetsToLoad
+    for i, assetId in ipairs(AssetsToLoad) do
+        if subLabel then subLabel.Text = "INITIALIZING CORE: " .. math.floor((i / total) * 100) .. "%" end
+        pcall(function()
+            local temp = Instance.new("ImageLabel")
+            temp.Image = assetId
+            ContentProvider:PreloadAsync({temp})
+            temp:Destroy()
+        end)
+        task.wait(0.08)
+    end
+    if subLabel then subLabel.Text = "ASSETS CACHED. READY TO BOOT." end
+    task.wait(0.4)
+end
+
+task.spawn(function()
+    PreloadAssets(Sub)
+
+    while running and LScreen and LScreen.Parent do
+        local elapsed = tick() - startTime
+        local progress = math.clamp(elapsed / duration, 0, 1)
+        local percent = math.floor(progress * 100)
+
+        local currentStyle = styles[(math.floor(elapsed * 2) % #styles) + 1]
+        local txt = currentStyle.t .. " [" .. percent .. "%]"
+
+        if LoadTitle then
+            LoadTitle.Text = txt
+            LoadTitle.Font = currentStyle.f
+            LoadTitle.TextColor3 = currentStyle.c
+        end
+        if Red then Red.Text = txt end
+        if Blue then Blue.Text = txt end
+
+        local shake = 2 + (progress * 4)
+        local offX = math.random(-shake, shake)
+        local offY = math.random(-shake/2, shake/2)
+
+        if LoadTitle then LoadTitle.Position = UDim2.new(0, offX, 0.35, offY) end
+        if Red then Red.Position = UDim2.new(0, offX + (2 * progress), 0.35, offY - 2) end
+        if Blue then Blue.Position = UDim2.new(0, offX - (2 * progress), 0.35, offY + 2) end
+
+        if Sub then
+            if percent < 25 then Sub.Text = "BYPASSING SECURITY..."
+            elseif percent < 50 then Sub.Text = "INJECTING MODULES..."
+            elseif percent < 75 then Sub.Text = "STABILIZING ENGINE..."
+            else Sub.Text = "FINALIZING..." end
+        end
+
+        if Bar then
+            TweenService:Create(Bar, TweenInfo.new(0.25, Enum.EasingStyle.Linear), {Size = UDim2.new(progress, 0, 1, 0)}):Play()
+        end
+
+        if progress >= 1 then break end
+        task.wait(0.08)
+    end
+end)
+
+--------------------------------------------------
+-- TIMED BLACKOUT & REBOOT SEQUENCES
+--------------------------------------------------
+task.spawn(function()
+    task.wait(duration - 2)
+    if not running then return end
+
+    local Black = Instance.new("Frame", LFrame)
+    Black.Size = UDim2.new(1,0,1,0)
+    Black.BackgroundColor3 = Color3.new(0,0,0)
+    Black.BackgroundTransparency = 1
+    Black.ZIndex = 10
+
+    for _ = 1,3 do
+        TweenService:Create(Black, TweenInfo.new(0.1), {BackgroundTransparency=0}):Play()
+        task.wait(0.1)
+        TweenService:Create(Black, TweenInfo.new(0.1), {BackgroundTransparency=1}):Play()
+        task.wait(0.1)
+    end
+
+    TweenService:Create(Black, TweenInfo.new(0.3), {BackgroundTransparency=0}):Play()
+    task.wait(0.5)
+
+    local flash = Instance.new("Frame", LFrame)
+    flash.Size = UDim2.new(1,0,1,0)
+    flash.BackgroundColor3 = Color3.new(1,1,1)
+    flash.BackgroundTransparency = 1
+    flash.ZIndex = 11
+
+    TweenService:Create(flash, TweenInfo.new(0.3), {BackgroundTransparency=0.2}):Play()
+    task.wait(0.2)
+    TweenService:Create(flash, TweenInfo.new(0.5), {BackgroundTransparency=1}):Play()
+
+    running = false
+    TweenService:Create(blur, TweenInfo.new(1), {Size=0}):Play()
+    task.wait(1)
+
+    pcall(function() blur:Destroy() end)
+    LScreen:Destroy()
+
+    if MainFrame then MainFrame.Visible = true end
+end)
+
+--------------------------------------------------
+--// NABILHUB FPS GUARD (KICK SYSTEM ONLY)
+--------------------------------------------------
+local FPS_MAX_LIMIT = 240  
+local FPS_LOW_LIMIT = 3  
+local LOW_FPS_TIME_ALLOWED = 5
+local SAMPLE_TIME = 1  
+local HIGH_VIOLATION_LIMIT = 3  
+  
+local frameCount = 0  
+local lastTime = tick()  
+local highViolations = 0  
+local lowFpsTimer = 0  
+  
+RunService.RenderStepped:Connect(function()  
+    frameCount += 1  
+end)  
+  
+task.spawn(function()  
+    while task.wait(SAMPLE_TIME) do  
+        local currentTime = tick()  
+        local delta = currentTime - lastTime  
+        if delta > 0 then  
+            local fps = math.floor(frameCount / delta)  
+            frameCount = 0  
+            lastTime = currentTime  
+  
+            if fps <= FPS_LOW_LIMIT then  
+                lowFpsTimer += SAMPLE_TIME  
+                if lowFpsTimer >= LOW_FPS_TIME_ALLOWED then  
+                    if lp then  
+                        lp:Kick("\n[NabilHub Security]\nConnection/Engine Stall Detected.\nFPS was below " .. FPS_LOW_LIMIT .. " for " .. LOW_FPS_TIME_ALLOWED .. "s.")  
+                    end  
+                    return  
+                end  
+            else  
+                lowFpsTimer = 0  
+            end  
+  
+            local checkFps = (fps > 1000) and 1000 or fps  
+            if checkFps > FPS_MAX_LIMIT then  
+                highViolations += 1  
+                if highViolations >= HIGH_VIOLATION_LIMIT then  
+                    if lp then  
+                        lp:Kick("\n[NabilHub Security]\nIllegal FPS Detected: " .. fps .. "\nMax Allowed: " .. FPS_MAX_LIMIT)  
+                    end  
+                    return  
+                end  
+            else  
+                highViolations = math.max(highViolations - 1, 0)  
+            end  
+        end  
+    end  
+end)  
+
+--------------------------------------------------
+--// FINAL BOOT SEQUENCE TRIGGER
+--------------------------------------------------
+task.spawn(function()
+    repeat task.wait() until MainFrame.Visible == true
+    OmniNotify.Show("NABIL HUB", "Welcome, " .. lp.DisplayName, 5, "success")
+    OmniNotify.Show("HARDWARE", "Running on " .. executor, 4, "info")
+    
+    if UserInputService.TouchEnabled then
+        OmniNotify.Show("MOBILE", "Use 'Clean Memory' if you feel lag.", 6, "warning")
+    end
+end)
