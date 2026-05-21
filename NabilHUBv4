@@ -1,0 +1,19 @@
+local LogService = game:GetService("LogService")
+local UNIQUE_SERVER_FLAG = "NabilHubV4_Server_Locked" 
+
+local alreadyExecuted = false
+for _, log in ipairs(LogService:GetLogHistory()) do
+    if log.message == UNIQUE_SERVER_FLAG then
+        alreadyExecuted = true
+        break
+    end
+end
+
+if alreadyExecuted then
+    print("NabilHubV4 has already been executed on this server!")
+    return
+end
+
+print(UNIQUE_SERVER_FLAG)
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/tareqmahmudtax-ship-it/NabILuiV4-CHORBI-V4/refs/heads/main/Chorbi-NABIL"))()
