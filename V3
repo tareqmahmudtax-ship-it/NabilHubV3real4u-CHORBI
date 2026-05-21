@@ -1,0 +1,9 @@
+local Success, MessageText = pcall(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/tareqmahmudtax-ship-it/NabILuiV4-CHORBI-V4/refs/heads/main/V4"))()
+end)
+
+if Success then 
+    print('WELCOME!! NabilHUBv4 is real')
+else
+    print('Error loading NabilHUBv4: ' .. tostring(MessageText) .. '. Try Again.')
+end
